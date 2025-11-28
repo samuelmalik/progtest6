@@ -23,6 +23,7 @@ void initSamplesArray(TSAMPLES_ARRAY*arr) {
 void destroySamplesArray(TSAMPLES_ARRAY* arr) {
     for (int i = 0; i < arr->length; i++) {
         free(arr->data[i].basesString);
+        arr->data[i].basesString = NULL;
     }
     free(arr->data);
     arr->data = NULL;
@@ -40,6 +41,7 @@ void appendSamplesArray(TSAMPLES_ARRAY* arr, TSAMPLE* samples) {
 }
 
 int readSamples(TSAMPLES_ARRAY* arr) {
+    printf("Databaze DNA:\n");
     int i=0;
     while (true) {
 
@@ -124,8 +126,15 @@ int readSearch(char** searchString) {
 }
 int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
     // algoritmus, ktory hladanu vzorku porovna s kazdou v databaze a vypise vysledok
-    printf("\n=======Tento string hladam:========== %s\n", searchString);
+
+    // vytvorenie pola
+    TSAMPLES_ARRAY matchedSamples;
+    initSamplesArray(&matchedSamples);
+    //debug statement
+    //printf("\n=======Tento string hladam:========== %s\n", searchString);
+
     int found = 0;
+    // cyklus prechadzajuci databazu samplov a hladajuci match
     for (int i = 0; i < arr->length;i++) {
         // toto sa spravi pre kazdu vzorku v databaze DNA
         //printf("----Hladam vo vzorke: %s\n", arr->data[i].basesString);
@@ -135,7 +144,13 @@ int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
             if ((foundPtr-arr->data[i].basesString)%3==0) {
                 // tu sa bude vysledok appendovat do pola vysledkov
                 found++;
-                printf("Nalezeno v %s\n", arr->data[i].basesString);
+
+                TSAMPLE matchedSample;
+                matchedSample.frq = arr->data[i].frq;
+                matchedSample.basesString = (char*)malloc(sizeof(char) * (strlen(arr->data[i].basesString)+1));
+                strcpy(matchedSample.basesString, arr->data[i].basesString);
+                appendSamplesArray(&matchedSamples, &matchedSample);
+                //printf("Nalezeno v %s\n", arr->data[i].basesString);
                 break;
             }
             //printf("Nasel si na pozici: %zu\n", foundPtr-arr->data[i].basesString);
@@ -145,11 +160,14 @@ int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
 
     }
     // tu vypis ak sa nenajde nic
-    if (!found)printf("Nalezeno 0\n");
-    else printf("Nalezeno %d", found);
-
+    if (!found)printf("Nalezeno: 0\n");
+    else printf("Nalezeno: %d\n", found);
     // tu sortovanie a vypis vysledku pre kazdy sample
+    for (int i = 0; i < matchedSamples.length; i++) {
+        printf("> %s\n", matchedSamples.data[i].basesString);
+    }
 
+    destroySamplesArray(&matchedSamples);
     return 0;
 }
 
@@ -185,7 +203,7 @@ int main(void) {
         }
         long unsigned srcLen = strlen(searchString);
         if (srcLen%3!=0) {
-            printf("Nespravny vstup.");
+            printf("Nespravny vstup.\n");
             free(searchString);
             destroySamplesArray(&samplesArr);
             return 1;
@@ -193,7 +211,7 @@ int main(void) {
         //kontrola ci obsahuje len A T C G
         for (long unsigned j=0;j<srcLen;j++) {
             if (searchString[j]!='A'&&searchString[j]!='T'&&searchString[j]!='C'&&searchString[j]!='G') {
-                printf("Nespravny vstup.");
+                printf("Nespravny vstup.\n");
                 free(searchString);
                 destroySamplesArray(&samplesArr);
                 return 1;
