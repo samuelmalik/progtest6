@@ -124,23 +124,23 @@ int readSearch(char** searchString) {
 }
 int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
     // algoritmus, ktory hladanu vzorku porovna s kazdou v databaze a vypise vysledok
+    printf("\n=======Tento string hladam:========== %s\n", searchString);
 
-    //loop pre kazdu polozku v databaze vzorkov
-    printf("\n=====Hladam: %s\n", searchString);
-    for (int i=0;i<arr->length;i++) {
-        // toto sa spravi pre jednu polozku
-        printf("V polozke: %s\n", arr->data[i].basesString);
-
-        char *res = strstr(arr->data[i].basesString, searchString);
-        while ((long unsigned)(res-arr->data[i].basesString)%3!=0) {
+    for (int i = 0; i < arr->length;i++) {
+        // toto sa spravi pre kazdu vzorku v databaze DNA
+        printf("----Hladam vo vzorke: %s\n", arr->data[i].basesString);
+        //algoritmus na hladanie
+        char* foundPtr = arr->data[i].basesString;
+        int found = 0;
+        while (*searchString != '\0' && (foundPtr = strstr(foundPtr, searchString))!=NULL) {
+            found=1;
+            printf("Nasel si na pozici: %zu\n", foundPtr-arr->data[i].basesString);
+            foundPtr++;
         }
+        if (!found) printf("Nenasel jsem\n");
 
-        if (res == NULL) {
-            printf("Nenajdene\n");
-        }else {
-            printf("Found at position: %lu\n", res-arr->data[i].basesString);
-        }
     }
+
     return 0;
 }
 
