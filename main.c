@@ -125,21 +125,30 @@ int readSearch(char** searchString) {
 int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
     // algoritmus, ktory hladanu vzorku porovna s kazdou v databaze a vypise vysledok
     printf("\n=======Tento string hladam:========== %s\n", searchString);
-
+    int found = 0;
     for (int i = 0; i < arr->length;i++) {
         // toto sa spravi pre kazdu vzorku v databaze DNA
-        printf("----Hladam vo vzorke: %s\n", arr->data[i].basesString);
+        //printf("----Hladam vo vzorke: %s\n", arr->data[i].basesString);
         //algoritmus na hladanie
         char* foundPtr = arr->data[i].basesString;
-        int found = 0;
         while (*searchString != '\0' && (foundPtr = strstr(foundPtr, searchString))!=NULL) {
-            found=1;
-            printf("Nasel si na pozici: %zu\n", foundPtr-arr->data[i].basesString);
+            if ((foundPtr-arr->data[i].basesString)%3==0) {
+                // tu sa bude vysledok appendovat do pola vysledkov
+                found++;
+                printf("Nalezeno v %s\n", arr->data[i].basesString);
+                break;
+            }
+            //printf("Nasel si na pozici: %zu\n", foundPtr-arr->data[i].basesString);
             foundPtr++;
         }
-        if (!found) printf("Nenasel jsem\n");
+        //if (!found)printf("Nenasel jsem\n");
 
     }
+    // tu vypis ak sa nenajde nic
+    if (!found)printf("Nalezeno 0\n");
+    else printf("Nalezeno %d", found);
+
+    // tu sortovanie a vypis vysledku pre kazdy sample
 
     return 0;
 }
