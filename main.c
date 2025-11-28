@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 typedef struct Sample {
     double frq;
     char* basesString;
@@ -13,6 +14,14 @@ typedef struct SamplesArray {
     int capacity;
     TSAMPLE* data;
 }TSAMPLES_ARRAY;
+
+int comp(const void *a, const void *b) {
+    TSAMPLE* aa = (TSAMPLE*)a;
+    TSAMPLE* bb = (TSAMPLE*)b;
+    if (aa->frq < bb->frq) return 1;
+    if (aa->frq > bb->frq) return -1;
+    return 0;
+}
 
 void initSamplesArray(TSAMPLES_ARRAY*arr) {
     arr->length = 0;
@@ -37,20 +46,18 @@ void appendSamplesArray(TSAMPLES_ARRAY* arr, TSAMPLE* samples) {
         arr->data = (TSAMPLE*)realloc(arr->data, arr->capacity * sizeof(TSAMPLE));
     }
     arr->data[arr->length++] = *samples;
-    //arr->data[arr->length].basesString = samples->basesString;
 }
 
 int readSamples(TSAMPLES_ARRAY* arr) {
     printf("Databaze DNA:\n");
     int i=0;
     while (true) {
-
-        // citanie riadku
+        // Reading line
         char *line = NULL;
         size_t lineCapacity = 0;
         ssize_t len = getline(&line, &lineCapacity, stdin);
+
         if (len == EOF) {
-            //printf("Chybaju vyhladavania");
             free(line);
             return 1;
         }
@@ -62,26 +69,24 @@ int readSamples(TSAMPLES_ARRAY* arr) {
             line[len - 1] = '\0';
         }
 
-        //----zapisovanie do pola vzorkov
-        TSAMPLE newSample;
-        // parsovanie stringu
+        // string parsing
         char *base;
         double frq = strtod(line, &base);
-        // baza nie je cislo alebo chyba dvojbodka
+        // base is not a number or ":" is missing
         if (base == line || base[0]!=':') {
             free(line);
             return 1;
         }
-        //zmazanie dvojbodky
+        // get ri of ":"
         base++;
-        // kontrola validity bazy TODO
+
         unsigned long basesLen = strlen(base);
-        // kontrola ci je baza delitelna 3
+        // check if base is divisible by 3
         if (basesLen%3!=0) {
             free(line);
             return 1;
         }
-        //kontrola ci obsahuje len A T C G
+        // check if base contains only A T G C
         for (long unsigned j=0;j<basesLen;j++) {
             if (base[j]!='A'&&base[j]!='T'&&base[j]!='C'&&base[j]!='G') {
                 free(line);
@@ -89,7 +94,8 @@ int readSamples(TSAMPLES_ARRAY* arr) {
             }
         }
 
-        // ukladanie do pola vzorkov
+        // saving to samples array
+        TSAMPLE newSample;
         newSample.frq = frq;
         newSample.basesString = (char*)malloc(sizeof(char) * len);
         strcpy(newSample.basesString, base);
@@ -101,12 +107,11 @@ int readSamples(TSAMPLES_ARRAY* arr) {
     return 0;
 }
 int readSearch(char** searchString) {
-    // citanie riadku
+    // reading line
     char *line = NULL;
     size_t lineCapacity = 0;
     ssize_t len = getline(&line, &lineCapacity, stdin);
     if (len == EOF) {
-        //printf("Chybaju vyhladavania");
         free(line);
         return -1;
     }
@@ -118,31 +123,25 @@ int readSearch(char** searchString) {
         line[len - 1] = '\0';
     }
 
-    // vratit string
+    // copy read line into output param
     *searchString = (char*)malloc(sizeof(char) * (strlen(line)+1));
     strcpy(*searchString, line);
     free(line);
     return 0;
 }
 int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
-    // algoritmus, ktory hladanu vzorku porovna s kazdou v databaze a vypise vysledok
-
-    // vytvorenie pola
+    // initialize array
     TSAMPLES_ARRAY matchedSamples;
     initSamplesArray(&matchedSamples);
-    //debug statement
-    //printf("\n=======Tento string hladam:========== %s\n", searchString);
 
     int found = 0;
-    // cyklus prechadzajuci databazu samplov a hladajuci match
     for (int i = 0; i < arr->length;i++) {
-        // toto sa spravi pre kazdu vzorku v databaze DNA
-        //printf("----Hladam vo vzorke: %s\n", arr->data[i].basesString);
-        //algoritmus na hladanie
+
+        //searching algorithm
         char* foundPtr = arr->data[i].basesString;
         while (*searchString != '\0' && (foundPtr = strstr(foundPtr, searchString))!=NULL) {
             if ((foundPtr-arr->data[i].basesString)%3==0) {
-                // tu sa bude vysledok appendovat do pola vysledkov
+                // if there is a match on index divisible by 3
                 found++;
 
                 TSAMPLE matchedSample;
@@ -150,65 +149,54 @@ int findSamples(TSAMPLES_ARRAY* arr, char* searchString) {
                 matchedSample.basesString = (char*)malloc(sizeof(char) * (strlen(arr->data[i].basesString)+1));
                 strcpy(matchedSample.basesString, arr->data[i].basesString);
                 appendSamplesArray(&matchedSamples, &matchedSample);
-                //printf("Nalezeno v %s\n", arr->data[i].basesString);
                 break;
             }
-            //printf("Nasel si na pozici: %zu\n", foundPtr-arr->data[i].basesString);
             foundPtr++;
         }
-        //if (!found)printf("Nenasel jsem\n");
-
     }
-    // tu vypis ak sa nenajde nic
     if (!found)printf("Nalezeno: 0\n");
-    else printf("Nalezeno: %d\n", found);
-    // tu sortovanie a vypis vysledku pre kazdy sample
-    for (int i = 0; i < matchedSamples.length; i++) {
-        printf("> %s\n", matchedSamples.data[i].basesString);
-    }
+    else {
+        printf("Nalezeno: %d\n", found);
+        qsort(matchedSamples.data, matchedSamples.length, sizeof(matchedSamples.data[0]), comp);
 
+        for (int i = 0; i < matchedSamples.length; i++) {
+            printf("> %s\n", matchedSamples.data[i].basesString);
+        }
+    }
     destroySamplesArray(&matchedSamples);
     return 0;
 }
 
 int main(void) {
-    // inicializovat pole samplov tu a poslat do funkcie
+    // init DNA database
     TSAMPLES_ARRAY samplesArr;
     initSamplesArray(&samplesArr);
 
-    // citanie vzorkov
+    // reading samples and storing in dynamic array
     if (readSamples(&samplesArr)) {
         printf("Nespravny vstup.\n");
         destroySamplesArray(&samplesArr);
         return 1;
     }
 
-    // testovaci vypis vzorkov
-    /*
-    printf("\nVYPIS VZORKOV:\n");
-    for (int j=0; j<samplesArr.length; j++) {
-        printf("Frekv: %.2f ", samplesArr.data[j].frq);
-        printf("DNA: %s ", samplesArr.data[j].basesString);
-        printf("dlzka: %lu\n", strlen(samplesArr.data[j].basesString) );
-    }
-    */
-
-    // citanie vyhladavania
+    // searching
     printf("Hledani:\n");
     while (true) {
+        // reading search String
         char *searchString=NULL;
         if (readSearch(&searchString)==-1) {
             free(searchString);
             break;
         }
         long unsigned srcLen = strlen(searchString);
+        // check if string is divisible by 3
         if (srcLen%3!=0) {
             printf("Nespravny vstup.\n");
             free(searchString);
             destroySamplesArray(&samplesArr);
             return 1;
         }
-        //kontrola ci obsahuje len A T C G
+        // check if string contains only A T C G
         for (long unsigned j=0;j<srcLen;j++) {
             if (searchString[j]!='A'&&searchString[j]!='T'&&searchString[j]!='C'&&searchString[j]!='G') {
                 printf("Nespravny vstup.\n");
@@ -217,13 +205,10 @@ int main(void) {
                 return 1;
             }
         }
-        // funkcia na spracovanie hladani
+        // find samples that contains searchString
         findSamples(&samplesArr, searchString);
-
         free(searchString);
     }
-    // uvolnenie pamate
     destroySamplesArray(&samplesArr);
     return 0;
-
 }
